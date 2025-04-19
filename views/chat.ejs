@@ -199,12 +199,25 @@
       const chatform = document.querySelector("#chatform");
       const messagebox = document.querySelector("#messagebox");
       const messageContainer = document.querySelector("#message-container");
-      socket.emit("joinRoom");
+     
       let room;
+
+      document
+        .querySelector("#micButton")
+        .addEventListener("click", toggleAudio);
+      document
+        .querySelector("#cameraButton")
+        .addEventListener("click", toggleVideo);
+
+        socket.emit("joinRoom");
 
       socket.on("joined", function (roomname) {
         room = roomname;
         document.querySelector(".nobody").classList.add("hidden");
+      });
+
+      socket.on("message", function (message) {
+        receiveMessage(message);
       });
 
       chatform.addEventListener("submit", function (e) {
@@ -212,10 +225,6 @@
         socket.emit("message", { room: room, message: messagebox.value });
         attachMessage(messagebox.value);
         messagebox.value = "";
-      });
-
-      socket.on("message", function (message) {
-        receiveMessage(message);
       });
 
       const attachMessage = (message) => {
@@ -367,10 +376,10 @@
           } catch (error) {
             console.log(error);
           }
-        };
-        if (type === "hangup"){
+        }
+        if (type === "hangup") {
           hangup();
-        };
+        }
       };
 
       const handleOffer = async (offer) => {
@@ -409,7 +418,7 @@
 
       socket.on("callAccepted", function () {
         initialize();
-        document.querySelector("#incoming-call").classList.remove("hidden");
+        document.querySelector(".videoblock").classList.remove("hidden");
       });
 
       document
@@ -421,31 +430,53 @@
           socket.emit("acceptCall", { room });
         });
 
-        document.querySelector("#reject-call").addEventListener("click",function(){
-        document.querySelector("#incoming-call").classList.add("hidden");
-        socket.emit("rejectCall",{ room });
+      document
+        .querySelector("#reject-call")
+        .addEventListener("click", function () {
+          document.querySelector("#incoming-call").classList.add("hidden");
+          socket.emit("rejectCall", { room });
         });
 
-        socket.on("callRejected",function(){
-          alert("Call rejected by other user")
-        });
+      socket.on("callRejected", function () {
+        alert("Call rejected by other user");
+      });
 
-     
-       document.querySelector("#hangup").addEventListener("click",function(){
-       hangup();
-       });
+      document.querySelector("#hangup").addEventListener("click", function () {
+        hangup();
+      });
 
-       const hangup = () => {
-        if (peerConnection){
+      const hangup = () => {
+        if (peerConnection) {
           peerConnection.close();
           peerConnection = null;
-          localStream.getTracks().forEach(track => track.stop());
+          localStream.getTracks().forEach((track) => track.stop());
 
           document.querySelector(".videoblock").classList.add("hidden");
-          socket.emit("signalingMessage",{ room, message: JSON.stringify({ type:"hangup"})});
+          socket.emit("signalingMessage", {
+            room,
+            message: JSON.stringify({ type: "hangup" }),
+          });
           inCall = false;
-        };
-       };
+        }
+      };
+
+     function toggleAudio(){
+      const audioTracks = localStream.getAudioTracks();
+      if(audioTracks.length > 0){
+        const isEnabled = audioTracks[0].enabled;
+        audioTracks[0].enabled = !isEnabled;
+        document.querySelector("#micButton").classList.toggle("muted",isEnabled);
+      };
+     };
+
+     function toggleVideo(){
+      const videoTracks = localStream.getVideoTracks();
+      if(videoTracks.length > 0){
+        const isEnabled = videoTracks[0].enabled;
+        videoTracks[0].enabled = !isEnabled;
+        document.querySelector("#cameraButton").classList.toggle("stopped",isEnabled);
+      };
+     };
 
     </script>
 
